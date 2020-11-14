@@ -1,5 +1,5 @@
-echo_kernel
-===========
+based on echo_kernel
+====================
 
 ``echo_kernel`` is a simple example of a Jupyter kernel. This repository
 complements the documentation on wrapper kernels here:
