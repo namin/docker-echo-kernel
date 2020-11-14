@@ -4,10 +4,6 @@ import hashlib
 import os
 
 base_image = 'namin/io.livecode.ch'
-user = 'webyrd'
-repo = 'webmk'
-app_image = base_image+'/'+user+'/'+repo
-app_git_url = 'https://github.com/%s/%s.git' % (user,repo)
 
 def init_app_image(img, git_url):
     c = docker.from_env()
@@ -15,7 +11,7 @@ def init_app_image(img, git_url):
     m.start()
     s = m.wait()
     if s['Error']:
-        return {'status':s['StatusCode'], 'out':'error cloning repository %s -- %s' % (git_url,s['Error'])}
+        return 'error cloning repository %s -- %s' % (git_url,s['Error']), s['StatusCode']
     m.commit(img)
     return dkr_run(img, 'livecode-install', img, c=c)
 
@@ -42,7 +38,7 @@ def dkr_run(img, cmd, commit=None, timeout=10, c=None):
         r += m.logs().decode('utf-8')
     if commit:
         m.commit(commit)
-    return {'status':s, 'out':r}
+    return r, s
 
 def snippet_cache(txt):
     key = hashlib.md5(txt.encode('utf-8')).hexdigest()
@@ -52,13 +48,12 @@ def snippet_cache(txt):
             f.write(txt)
     return key
 
-def run(input_main,input_pre='',input_post=''):
+def run(app_image, input_main,input_pre='',input_post=''):
     img = app_image
     key_main = snippet_cache(input_main)
     key_pre = snippet_cache(input_pre)
     key_post = snippet_cache(input_post)
-    o_run = dkr_run(img, 'livecode-run %s %s %s' % (key_main, key_pre, key_post))
-    return o_run['out'], o_run['status']
+    return dkr_run(img, 'livecode-run %s %s %s' % (key_main, key_pre, key_post))
 
 from ipykernel.kernelbase import Kernel
 
@@ -76,13 +71,22 @@ class EchoKernel(Kernel):
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
+        self.set_repo('webyrd/webmk')
         self.pre = ''
+        self.post = ''
+
+    def set_repo(self, user_repo):
+        self.user_repo = user_repo
+        self.app_image = base_image+'/'+self.user_repo
+        self.app_git_url = 'https://github.com/%s.git' % self.user_repo
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if not silent:
-            output, status = run(code, input_pre=self.pre)
-            if status==0:
-                self.pre += '\n' + code
+            if code.startswith('@config'):
+                self.set_repo(code[len('@config'):].strip())
+                output, status = init_app_image(self.app_image, self.app_git_url)
+            else:
+                output, status = run(self.app_image, code, input_pre=self.pre)
             stream_content = {'name': 'stdout', 'text': output}
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
