@@ -89,6 +89,10 @@ class EchoKernel(Kernel):
             if code.startswith('@config'):
                 self.set_repo(strip('@config', code))
                 output, status = init_app_image(self.app_image, self.app_git_url)
+            elif code.startswith('@reset'):
+                self.pre = ''
+                self.post = ''
+                output = 'OK'
             elif code.startswith('@lib @norun'):
                 self.pre += '\n' + strip('@lib @norun', code)
                 output = 'OK'
