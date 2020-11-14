@@ -55,6 +55,9 @@ def run(app_image, input_main,input_pre='',input_post=''):
     key_post = snippet_cache(input_post)
     return dkr_run(img, 'livecode-run %s %s %s' % (key_main, key_pre, key_post))
 
+def strip(cmd, code):
+    return code[len(cmd):].strip()
+
 from ipykernel.kernelbase import Kernel
 
 class EchoKernel(Kernel):
@@ -82,11 +85,21 @@ class EchoKernel(Kernel):
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         if not silent:
+            inp = None
             if code.startswith('@config'):
-                self.set_repo(code[len('@config'):].strip())
+                self.set_repo(strip('@config', code))
                 output, status = init_app_image(self.app_image, self.app_git_url)
+            elif code.startswith('@lib @norun'):
+                self.pre += '\n' + strip('@lib @norun', code)
+                output = 'OK'
+            elif code.startswith('@lib'):
+                inp = strip('@lib', code)
+                self.pre += '\n' + inp
+                inp = self.pre
             else:
-                output, status = run(self.app_image, code, input_pre=self.pre)
+                inp = self.pre + '\n' + code
+            if inp:
+                output, status = run(self.app_image, inp, input_pre=self.pre)
             stream_content = {'name': 'stdout', 'text': output}
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
