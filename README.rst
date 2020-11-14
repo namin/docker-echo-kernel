@@ -1,7 +1,7 @@
 docker-echo-kernel
 ==================
 
-[demo](http://jupyter.livecode.ch:7777/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2Fnamin%2Fdocker-echo-kernel&branch=master&urlpath=tree%2Fdocker-echo-kernel%2Fnotebooks%2Fsample.ipynb)
+[demo](http://jupyter-demo.namin.net)
 
 based on echo_kernel
 ====================
